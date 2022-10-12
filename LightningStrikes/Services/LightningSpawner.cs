@@ -7,158 +7,168 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using static LightningStrikes.Configuration;
+using Random = UnityEngine.Random;
 
 namespace LightningStrikes.Services
 {
     public class LightningSpawner : MonoBehaviour
     {
-        //private HashSet<WeatherAssetBase> _weatherAssetBases;
+        private const int PRE_STRIKE_DELAY = 1;
+        private const int POST_STRIKE_DELAY = 1000;
 
         private ClientInstanceMethod<Vector3> _sendLightningStrike;
 
-        private float _lightningRangeRadius = -1;
-
-        private static int _currentLighningCount;
-
-
-
-        private static WeatherAssetBase _currentWeather;
-        private static WeatherAssetBase _scheduledWeather;
-        private static float _scheduledWeatherDuration;
-        private static float _weatherTimeLeft;
-        private static bool _rescheduleWeather = false;
+        private float _lightningRangeRadius = -1f;
+        private static int _currentLighningCount = 0;
+        private static NetId LWCNetId = NetId.INVALID;
 
         public LightningSpawner()
         {
             _sendLightningStrike = (ClientInstanceMethod<Vector3>)typeof(LightningWeatherComponent)
                 .GetField("SendLightningStrike", BindingFlags.NonPublic | BindingFlags.Static)
                 .GetValue(null);
-        }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns> The active weather object of type <see cref="LevelLighting.CustomWeatherInstance"/></returns>
-        private object GetActiveWeather()
-        {
-            return typeof(LevelLighting)
-                .GetField("activeCustomWeather", BindingFlags.NonPublic | BindingFlags.Static)
+            _sendLightningStrike = (ClientInstanceMethod<Vector3>)typeof(LightningWeatherComponent)
+                .GetField("DoExplosionDamage", BindingFlags.NonPublic | BindingFlags.Static)
                 .GetValue(null);
         }
 
-        private NetId GetLighningNetId(object weather)
+        public void SendStrike(EventConf eventConf, Vector3 position)
         {
-            GameObject weatherGameObject = (GameObject)weather
-                .GetType()
-                .GetField("gameObject")
-                .GetValue(weather);
-
-            LightningWeatherComponent weatherLightning = weatherGameObject.GetComponent<LightningWeatherComponent>();
-
-            if (weatherLightning == null)
-                return NetId.INVALID;
-
-            return weatherLightning.GetNetId();
+            switch (eventConf.StrikeType)
+            {
+                case Models.EStrikeType.SingleStrike:
+                    Strike(position, dealDamage: eventConf.Damage);
+                    break;
+                case Models.EStrikeType.StrikeRing:
+                    StrikeRing(position, eventConf.Amount, eventConf.Radius, eventConf.MinDelay, eventConf.MaxDelay, eventConf.Damage);
+                    break;
+                default:
+                    Strike(position);
+                    break;
+            }
         }
 
-
-        public bool SendLightningStrike(Vector3 hitPosition, SteamPlayer player)
+        public bool Strike(Vector3 hitPosition, bool dealDamage = false)
         {
-            object weather = GetActiveWeather();
+            return SendLightningStrike(hitPosition, dealDamage);
+            //if (player == null)
+            //else
+            //    return SendLightningStrike(hitPosition, player, dealDamage);
+        }
 
-            if (weather == null)
+        public void StrikeRing(Vector3 center, int count, float radius, int minDelay = 50, int maxDelay = 50, bool dealDamage = false)
+        {
+            Vector3[] strikePostions = new Vector3[count];
+            float angle = 2*Mathf.PI / count;
+
+            for (int i = 0; i < count; i++)
+            {
+                strikePostions[i] = new Vector3(
+                    center.x + radius * Mathf.Cos(angle*i),
+                    center.y,
+                    center.z + radius * Mathf.Sin(angle*i)
+                );
+            }
+
+            Task.Run(async () =>
+            {
+
+                foreach (var strikePostion in strikePostions)
+                {
+                    Console.WriteLine("Sending strike");
+                    SendLightningStrike(strikePostion, dealDamage);
+                    await Task.Delay(Random.Range(minDelay, maxDelay));
+                }
+            });
+        }
+
+        //public bool StrikeCircle(Vector3 center, int count, float radius, int minDelay = 0, int maxDelay = 0)
+        //{
+        //    Vector3[] strikePostions = new Vector3[count];
+
+        //    for (int i = 0; i < count; i++)
+        //    {
+        //        strikePostions[i] =
+        //    }
+
+        //    foreach (var strikePostion in strikePostions)
+        //    {
+        //        SendLightningStrike(strikePostion);
+        //    }
+        //}
+
+
+        private bool SendLightningStrike(Vector3 hitPosition, SteamPlayer player, bool dealDamage = false)
+        {
+            if(LWCNetId == NetId.INVALID)
+                LWCNetId = LightningStrikes.Instance.WeatherProvider.SetLightningWeather();
+
+            if (LWCNetId == NetId.INVALID)
                 return false;
 
-            NetId lwcNetId = GetLighningNetId(weather);
+            _ = SendLightningStrike(hitPosition, player.transportConnection, LWCNetId);
 
-            if (lwcNetId == NetId.INVALID)
-                return false;
-
-            _ = SendLightningStrike(hitPosition, player.transportConnection, lwcNetId);
+            if (dealDamage)
+                StartCoroutine(DealDamage(hitPosition));
 
             return true;
         }
 
-        public void SendLightningStrike(Vector3 hitPosition)
+        private bool SendLightningStrike(Vector3 hitPosition, bool dealDamage = false)
         {
-            object weather = GetActiveWeather();
+            if (LWCNetId == NetId.INVALID)
+                LWCNetId = LightningStrikes.Instance.WeatherProvider.SetLightningWeather();
 
-            NetId lwcNetId;
-            if (weather != null)
-            {
-                lwcNetId = GetLighningNetId(weather);
+            if (LWCNetId == NetId.INVALID)
+                return false;
 
-                if(lwcNetId == NetId.INVALID)
-                {
-                    _rescheduleWeather = true;
-                    _currentWeather = (WeatherAssetBase)weather.GetType()
-                        .GetField("asset")
-                        .GetValue(weather);
-
-                    _weatherTimeLeft = (float)typeof(LightingManager)
-                        .GetField("scheduledWeatherForecastTimer", BindingFlags.NonPublic | BindingFlags.Static)
-                        .GetValue(null);
-
-                    _scheduledWeather = ((AssetReference<WeatherAssetBase>)typeof(LightingManager)
-                        .GetField("scheduledWeatherRef", BindingFlags.NonPublic | BindingFlags.Static)
-                        .GetValue(null))
-                        .get();
-
-                    _scheduledWeatherDuration = (float)typeof(LightingManager)
-                        .GetField("scheduledWeatherForecastTimer", BindingFlags.NonPublic | BindingFlags.Static)
-                        .GetValue(null);
-
-                    weather = SetCustomLighningWeather();
-
-                    lwcNetId = GetLighningNetId(weather);
-                }
-            }
+            if (_lightningRangeRadius > 0f)
+                _ = SendLightningStrike(hitPosition, Provider.EnumerateClients_WithinSphere(hitPosition, _lightningRangeRadius), LWCNetId);
             else
-            {
-                weather = SetCustomLighningWeather();
+                _ = SendLightningStrike(hitPosition, Provider.EnumerateClients(), LWCNetId);
 
-                lwcNetId = GetLighningNetId(weather);
-            }
+            if (dealDamage)
+                StartCoroutine(DealDamage(hitPosition));
 
-            if (_lightningRangeRadius > 0)
-                _ = SendLightningStrike(hitPosition, Provider.EnumerateClients_WithinSphere(hitPosition, _lightningRangeRadius), lwcNetId);
-            else
-                _ = SendLightningStrike(hitPosition, Provider.EnumerateClients(), lwcNetId);
+            return true;
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns> The new weather object of type <see cref="LevelLighting.CustomWeatherInstance"/></returns>
-        private object SetCustomLighningWeather()
+        private IEnumerator<object> DealDamage(Vector3 hitPosition)
         {
-            AssetReference<WeatherAssetBase>.TryParse("6c850687bdb947a689fa8de8a8d99afb", out AssetReference<WeatherAssetBase> assetRef);
-
-            WeatherAssetBase weatherAsset = assetRef.get();
-            LightingManager.ActivatePerpetualWeather(weatherAsset);
-            return GetActiveWeather();
+            yield return new WaitForSeconds(1f);
+            DamageTool.explode(new ExplosionParameters(hitPosition, 10f, EDeathCause.BURNING)
+            {
+                damageOrigin = EDamageOrigin.Lightning,
+                playImpactEffect = false,
+                playerDamage = 75f,
+                zombieDamage = 200f,
+                animalDamage = 200f,
+                barricadeDamage = 100f,
+                structureDamage = 100f,
+                vehicleDamage = 200f,
+                resourceDamage = 1000f,
+                objectDamage = 1000f,
+                launchSpeed = 50f
+            }, out List<EPlayerKill> _);
         }
 
+        #region internal sendLightningStrike
         private async Task SendLightningStrike(Vector3 hitPosition, IEnumerable<ITransportConnection> players, NetId lwcNetId)
         {
             _currentLighningCount++;
 
-            await Task.Delay(1);
+            await Task.Delay(PRE_STRIKE_DELAY);
             _sendLightningStrike.Invoke(lwcNetId, ENetReliability.Reliable, players, hitPosition);
-            await Task.Delay(2000);
+            await Task.Delay(POST_STRIKE_DELAY);
 
             _currentLighningCount--;
 
-            if (_rescheduleWeather && _currentLighningCount == 0)
+            if(_currentLighningCount == 0)
             {
-                LightingManager.ActivatePerpetualWeather(_currentWeather);
-
-                LightingManager.SetScheduledWeather(_scheduledWeather, _weatherTimeLeft, _scheduledWeatherDuration);
-                _rescheduleWeather = false;
-            }
-            else if (!_rescheduleWeather && _currentLighningCount == 0)
-            {
-                LightingManager.ResetScheduledWeather();
+                LightningStrikes.Instance.WeatherProvider.RestoreWeather();
+                LWCNetId = NetId.INVALID;
             }
         }
 
@@ -166,23 +176,18 @@ namespace LightningStrikes.Services
         {
             _currentLighningCount++;
 
-            await Task.Delay(1);
+            await Task.Delay(PRE_STRIKE_DELAY);
             _sendLightningStrike.Invoke(lwcNetId, ENetReliability.Reliable, player, hitPosition);
-            await Task.Delay(2000);
+            await Task.Delay(POST_STRIKE_DELAY);
 
             _currentLighningCount--;
 
-            if(_rescheduleWeather && _currentLighningCount == 0)
+            if (_currentLighningCount == 0)
             {
-                LightingManager.ActivatePerpetualWeather(_currentWeather);
-
-                LightingManager.SetScheduledWeather(_scheduledWeather, _weatherTimeLeft, _scheduledWeatherDuration);
-                _rescheduleWeather = false;
-            }
-            else if(!_rescheduleWeather && _currentLighningCount == 0)
-            {
-                LightingManager.ResetScheduledWeather();
+                LightningStrikes.Instance.WeatherProvider.RestoreWeather();
+                LWCNetId = NetId.INVALID;
             }
         }
+        #endregion
     }
 }
