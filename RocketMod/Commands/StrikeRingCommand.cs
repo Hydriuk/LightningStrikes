@@ -5,23 +5,24 @@ using Steamworks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Remoting.Contexts;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace LightningStrikes.Commands
+namespace LightningStrikes.RocketMod.Commands
 {
     public class StrikeRingCommand : IRocketCommand
     {
         public AllowedCaller AllowedCaller => AllowedCaller.Player;
 
-        public string Name => "ringstrike";
+        public string Name => "strikering";
 
-        public string Help => "";
+        public string Help => "Sends multiple lightning strikes around a ring.";
 
-        public string Syntax => "<radius> [<player> | <x> <y> <z>] [<amount> [<minDelay> <maxDelay>]]  [-damage | -d]";
+        public string Syntax => "<radius> [<player>] <amount> [<minDelay> <maxDelay>] [-damage | -d] [-random | -r] [-circle | -c]";
 
-        public List<string> Aliases => new List<string>() { "rstrike" };
+        public List<string> Aliases => new List<string>() { "striker" };
 
         public List<string> Permissions => new List<string>();
 
@@ -31,6 +32,8 @@ namespace LightningStrikes.Commands
 
             UnturnedPlayer targetPlayer = UnturnedPlayer.FromCSteamID(CSteamID.Nil);
             bool dealDamage = false;
+            bool random = false;
+            bool circle = false;
             float radius = -1f;
             int amount = -1;
             int minDelay = -1;
@@ -41,6 +44,18 @@ namespace LightningStrikes.Commands
                 if (command[i] == "-damage" || command[i] == "-d")
                 {
                     dealDamage = true;
+                    continue;
+                }
+
+                if (command[i] == "-random" || command[i] == "-r")
+                {
+                    random = true;
+                    continue;
+                }
+
+                if (command[i] == "-circle" || command[i] == "-c")
+                {
+                    circle = true;
                     continue;
                 }
 
@@ -91,7 +106,9 @@ namespace LightningStrikes.Commands
                 radius, 
                 minDelay != -1 ? minDelay : 50, 
                 maxDelay != -1 ? maxDelay : 50, 
-                dealDamage
+                dealDamage,
+                random,
+                circle
             );
         }
     }

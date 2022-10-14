@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace LightningStrikes.Commands
+namespace LightningStrikes.RocketMod.Commands
 {
     public class StrikeCommand : IRocketCommand
     {
@@ -17,9 +17,9 @@ namespace LightningStrikes.Commands
 
         public string Name => "strike";
 
-        public string Help => "";
+        public string Help => "Sends a lightning strike";
 
-        public string Syntax => "[<player> | <x> <y> <z>] [-damage | -d]";
+        public string Syntax => "[<player>] [-damage | -d]";
 
         public List<string> Aliases => new List<string>();
 
@@ -62,7 +62,7 @@ namespace LightningStrikes.Commands
                     uPlayer.Player.look.aim.position,
                     uPlayer.Player.look.aim.forward,
                     out RaycastHit hit,
-                    600f,
+                    1000f,
                     RayMasks.BLOCK_COLLISION - RayMasks.SKY,
                     QueryTriggerInteraction.UseGlobal
                 );
@@ -74,7 +74,8 @@ namespace LightningStrikes.Commands
                 hitPosition = targetPlayer.Position;
             }
 
-            LightningStrikes.Instance.LightningSpawner.Strike(hitPosition, dealDamage: dealDamage);
+            if (hitPosition != Vector3.zero)
+                LightningStrikes.Instance.LightningSpawner.Strike(hitPosition, dealDamage: dealDamage);
         }
     }
 }

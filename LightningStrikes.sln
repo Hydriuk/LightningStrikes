@@ -1,25 +1,36 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31911.196
+# Visual Studio Version 17
+VisualStudioVersion = 17.3.32825.248
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightningStrikes", "LightningStrikes\LightningStrikes.csproj", "{3860FFF0-D17B-49A4-993B-722013CB5212}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RocketMod", "RocketMod\RocketMod.csproj", "{3860FFF0-D17B-49A4-993B-722013CB5212}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenMod", "OpenMod\OpenMod.csproj", "{132F85D5-F550-4289-B4ED-49CEBD8BA2DB}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "LightningStrikes", "LightningStrikes\LightningStrikes.shproj", "{92E5833E-8F76-421A-9540-C27EB46FFE1D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Any CPU = Debug|Any CPU
-		Release|Any CPU = Release|Any CPU
+		OPENMOD|Any CPU = OPENMOD|Any CPU
+		ROCKETMOD|Any CPU = ROCKETMOD|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{3860FFF0-D17B-49A4-993B-722013CB5212}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3860FFF0-D17B-49A4-993B-722013CB5212}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3860FFF0-D17B-49A4-993B-722013CB5212}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3860FFF0-D17B-49A4-993B-722013CB5212}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3860FFF0-D17B-49A4-993B-722013CB5212}.OPENMOD|Any CPU.ActiveCfg = ROCKETMOD|Any CPU
+		{3860FFF0-D17B-49A4-993B-722013CB5212}.ROCKETMOD|Any CPU.ActiveCfg = ROCKETMOD|Any CPU
+		{3860FFF0-D17B-49A4-993B-722013CB5212}.ROCKETMOD|Any CPU.Build.0 = ROCKETMOD|Any CPU
+		{132F85D5-F550-4289-B4ED-49CEBD8BA2DB}.OPENMOD|Any CPU.ActiveCfg = OPENMOD|Any CPU
+		{132F85D5-F550-4289-B4ED-49CEBD8BA2DB}.OPENMOD|Any CPU.Build.0 = OPENMOD|Any CPU
+		{132F85D5-F550-4289-B4ED-49CEBD8BA2DB}.ROCKETMOD|Any CPU.ActiveCfg = OPENMOD|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {774503BB-3635-4F2D-8B85-A007898ACFC7}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		LightningStrikes\LightningStrikes.projitems*{132f85d5-f550-4289-b4ed-49cebd8ba2db}*SharedItemsImports = 5
+		LightningStrikes\LightningStrikes.projitems*{3860fff0-d17b-49a4-993b-722013cb5212}*SharedItemsImports = 4
+		LightningStrikes\LightningStrikes.projitems*{92e5833e-8f76-421a-9540-c27eb46ffe1d}*SharedItemsImports = 13
 	EndGlobalSection
 EndGlobal
