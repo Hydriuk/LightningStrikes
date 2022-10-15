@@ -2,11 +2,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using OpenMod.API.Ioc;
 #endif
-using System.Reflection;
-using System.Text;
-using SDG.Unturned;
-using UnityEngine;
 using LightningStrikes.API;
+using SDG.Unturned;
+using System.Reflection;
+using UnityEngine;
 
 namespace LightningStrikes.Services
 {
@@ -69,7 +68,6 @@ namespace LightningStrikes.Services
         /// </summary>
         public void RestoreWeather()
         {
-            System.Console.WriteLine("RestoreWeather");
             if (_rescheduleWeather)
             {
                 LightingManager.ActivatePerpetualWeather(_currentWeather);
@@ -106,7 +104,6 @@ namespace LightningStrikes.Services
         /// <returns> The new weather object of type <see cref="LevelLighting.CustomWeatherInstance"/></returns>
         private object SetCustomLightningWeather()
         {
-            System.Console.WriteLine("SetCustomLightningWeather");
             // Heavy rain weather
             AssetReference<WeatherAssetBase>.TryParse("6c850687bdb947a689fa8de8a8d99afb", out AssetReference<WeatherAssetBase> assetRef);
 

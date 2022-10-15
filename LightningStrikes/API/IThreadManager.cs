@@ -2,8 +2,6 @@
 using OpenMod.API.Ioc;
 #endif
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace LightningStrikes.API
 {

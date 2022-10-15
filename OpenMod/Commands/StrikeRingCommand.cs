@@ -2,21 +2,15 @@
 using LightningStrikes.API;
 using OpenMod.Core.Commands;
 using OpenMod.Unturned.Commands;
-using OpenMod.Unturned.Players;
 using OpenMod.Unturned.Users;
 using SDG.Unturned;
-using Steamworks;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LightningStrikes.OpenMod.Commands
 {
     [Command("strikering")]
     [CommandAlias("striker")]
-    [CommandSyntax("<radius> [<player>] <amount> [<minDelay> <maxDelay>] [-damage | -d] [-random | -r] [-circle | -c]")]
+    [CommandSyntax("[<player>] <amount> <radius> [<minDelay> <maxDelay>] [-d] [-r | -c]")]
     [CommandDescription("Sends multiple lightning strikes around a ring.")]
     [CommandActor(typeof(UnturnedUser))]
     public class StrikeRingCommand : UnturnedCommand
@@ -32,80 +26,76 @@ namespace LightningStrikes.OpenMod.Commands
         {
             UnturnedUser user = (UnturnedUser)Context.Actor;
 
-            Player? target = null;
+            if (Context.Parameters.Length < 2)
+                throw new CommandWrongUsageException(Context);
+
+            // Current parameter index
+            int i = 0;
+
+            // Parse [<player>]
+            Player? target = PlayerTool.getPlayer(Context.Parameters[i]);
+            if (target != null)
+                i++;
+
+            // Parse <amount>
+            if (!int.TryParse(Context.Parameters[i], out int amount))
+                throw new CommandWrongUsageException("<amount> must be a number");
+            if (amount <= 0)
+                throw new CommandWrongUsageException("<amount> must be a greater or equal to 1");
+            i++;
+
+            // Parse <radius>
+            if (!float.TryParse(Context.Parameters[i], out float radius))
+                throw new CommandWrongUsageException("<radius> must be a number");
+            i++;
+
+            // Parse [<minDelay> <maxDelay>]
+            if (Context.Parameters.Length > i + 1 && int.TryParse(Context.Parameters[i], out int minDelay) && int.TryParse(Context.Parameters[i + 1], out int maxDelay))
+            {
+                i += 2;
+            }
+            else
+            {
+                minDelay = -1;
+                maxDelay = -1;
+            }
+
+            // Parse flags
             bool dealDamage = false;
             bool random = false;
             bool circle = false;
-            float radius = -1f;
-            int amount = -1;
-            int minDelay = -1;
-            int maxDelay = -1;
-
-            for (int i = 0; i < Context.Parameters.Length; i++)
+            for (int j = i; j < Context.Parameters.Length; j++)
             {
-                if (Context.Parameters[i] == "-damage" || Context.Parameters[i] == "-d")
+                // Parse [-damage | -d]
+                if (Context.Parameters[j] == "-damage" || Context.Parameters[j] == "-d")
                 {
                     dealDamage = true;
-                    continue;
+                    i++;
                 }
 
-                if (Context.Parameters[i] == "-random" || Context.Parameters[i] == "-r")
+                // Parse [-random | -r]
+                if (Context.Parameters[j] == "-random" || Context.Parameters[j] == "-r")
                 {
                     random = true;
-                    continue;
+                    i++;
                 }
 
-                if (Context.Parameters[i] == "-circle" || Context.Parameters[i] == "-c")
+                // Parse [-circle | -c]
+                if (Context.Parameters[j] == "-circle" || Context.Parameters[j] == "-c")
                 {
                     circle = true;
-                    continue;
+                    i++;
                 }
-
-                if (radius == -1)
-                {
-                    bool success = Context.Parameters.Length > i && float.TryParse(Context.Parameters[i], out radius);
-
-                    if (success)
-                        continue;
-
-                    throw new CommandWrongUsageException("Radius must be a number");
-                }
-
-                if (target == null)
-                {
-                    target = PlayerTool.getPlayer(Context.Parameters[i]);
-
-                    if (target != null)
-                        continue;
-                }
-
-                if (amount == -1)
-                {
-                    bool success = int.TryParse(Context.Parameters[i], out amount);
-
-                    if (success)
-                    {
-                        if (Context.Parameters.Length > i + 2)
-                        {
-                            success = int.TryParse(Context.Parameters[i + 1], out minDelay) && int.TryParse(Context.Parameters[i + 2], out maxDelay);
-
-                            if (success)
-                                i += 2;
-                        }
-
-                        continue;
-                    }
-                }
-
-                throw new CommandWrongUsageException($"Could not parse {Context.Parameters[i]}");
             }
 
-            if (amount == -1)
-                throw new CommandWrongUsageException("Amount must be greater or equal to 1");
+            if (Context.Parameters.Length > i)
+                throw new CommandWrongUsageException(Context);
 
+            // Update target
             if (target == null)
                 target = user.Player.Player;
 
+            // Strike
             _lightningSpawner.StrikeRing(
                 target.transform.position,
                 amount,

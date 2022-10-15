@@ -1,12 +1,7 @@
 ﻿using Rocket.API;
 using Rocket.Unturned.Player;
 using SDG.Unturned;
-using Steamworks;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 
 namespace LightningStrikes.RocketMod.Commands
@@ -17,45 +12,49 @@ namespace LightningStrikes.RocketMod.Commands
 
         public string Name => "strike";
 
-        public string Help => "Sends a lightning strike";
+        public string Help => "Sends a lightning strike.";
 
-        public string Syntax => "[<player>] [-damage | -d]";
+        public string Syntax => "[<player>] [-d]";
 
         public List<string> Aliases => new List<string>();
 
-        public List<string> Permissions => new List<string>();
-
+        public List<string> Permissions => new List<string>() { "lightningstrikes.admin" };
 
         public void Execute(IRocketPlayer caller, string[] command)
         {
             UnturnedPlayer uPlayer = (UnturnedPlayer)caller;
 
-            UnturnedPlayer targetPlayer = UnturnedPlayer.FromCSteamID(CSteamID.Nil);
-            bool dealDamage = false;
+            // current parameter index
+            int i = 0;
 
-            for (int i = 0; i < command.Length; i++)
+            Player target = null;
+
+            // Parse [<player>]
+            if (command.Length > i)
             {
-                if (command[i] == "-damage" || command[i] == "-d")
-                {
-                    dealDamage = true;
-                    continue;
-                }
+                target = PlayerTool.getPlayer(command[i]);
+                if (target != null)
+                    i++;
+            }
 
-                if (targetPlayer == null)
-                {
-                    targetPlayer = UnturnedPlayer.FromName(command[i]);
+            // Parse [-damage | -d]
+            bool dealDamage = false;
+            if (command.Length > i)
+            {
+                dealDamage = command[i] == "-damage" || command[i] == "-d";
+                if (dealDamage)
+                    i++;
+            }
 
-                    if (targetPlayer != null)
-                        continue;
-                }
-
-                ChatManager.serverSendMessage($"Could not parse {command[i]}. Syntax: {Syntax}", Color.yellow, toPlayer: uPlayer.SteamPlayer());
+            if (command.Length > i)
+            {
+                ChatManager.serverSendMessage($"Wrong command syntax: {Syntax}", Color.red, toPlayer: uPlayer.SteamPlayer());
                 return;
             }
 
             // Set hit position
             Vector3 hitPosition;
-            if (targetPlayer == null)
+            if (target == null)
             {
                 // Raycast target player's look
                 Physics.Raycast(
@@ -71,7 +70,7 @@ namespace LightningStrikes.RocketMod.Commands
             else
             {
                 // Set target player's position
-                hitPosition = targetPlayer.Position;
+                hitPosition = target.transform.position;
             }
 
             if (hitPosition != Vector3.zero)

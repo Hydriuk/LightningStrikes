@@ -13,7 +13,6 @@ namespace LightningStrikes.RocketMod
         public IWeatherProvider WeatherProvider;
         public IThreadManager ThreadManager;
 
-
         public LightningStrikes()
         {
             Instance = this;

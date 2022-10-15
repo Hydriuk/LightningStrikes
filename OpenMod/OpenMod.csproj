@@ -30,11 +30,6 @@
     </PackageReference>
   </ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="config.yaml" />
-    <EmbeddedResource Include="translations.yaml" />
-  </ItemGroup>
-
   <Target Name="ChangeAliasesOfNugetRefs" BeforeTargets="FindReferenceAssembliesForReferences;ResolveReferences">
     <ItemGroup>
     </ItemGroup>

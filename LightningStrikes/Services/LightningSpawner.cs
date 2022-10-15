@@ -5,11 +5,7 @@ using OpenMod.API.Ioc;
 #endif
 using SDG.NetTransport;
 using SDG.Unturned;
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -64,7 +60,7 @@ namespace LightningStrikes.Services
                     strikePostions[i].y = LevelGround.getHeight(strikePostions[i]);
                     continue;
                 }
-                
+
                 if (random)
                 {
                     var rn = Random.value;
