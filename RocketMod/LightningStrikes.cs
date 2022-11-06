@@ -12,6 +12,8 @@ namespace LightningStrikes.RocketMod
         public ILightningSpawner LightningSpawner;
         public IWeatherProvider WeatherProvider;
         public IThreadManager ThreadManager;
+        public IStrikePositionProvider StrikePositionProvider;
+
 
         public LightningStrikes()
         {
@@ -22,7 +24,8 @@ namespace LightningStrikes.RocketMod
         {
             WeatherProvider = new WeatherProvider();
             ThreadManager = new ThreadManager();
-            LightningSpawner = new LightningSpawner(WeatherProvider, ThreadManager);
+            StrikePositionProvider = new StrikePositionProvider();
+            LightningSpawner = new LightningSpawner(WeatherProvider, ThreadManager, StrikePositionProvider);
         }
     }
 }

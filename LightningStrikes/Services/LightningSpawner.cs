@@ -19,21 +19,23 @@ namespace LightningStrikes.Services
     {
         private const int PRE_STRIKE_DELAY = 50;
         private const int POST_STRIKE_DELAY = 2000;
-        private const float PI_2 = 2 * Mathf.PI;
 
-        private static ClientInstanceMethod<Vector3> _sendLightningStrike = ClientInstanceMethod<Vector3>.Get(typeof(LightningWeatherComponent), "ReceiveLightningStrike");
+        private readonly static ClientInstanceMethod<Vector3> _sendLightningStrike = ClientInstanceMethod<Vector3>.Get(typeof(LightningWeatherComponent), "ReceiveLightningStrike");
 
-        private IWeatherProvider _weatherProvider;
-        private IThreadManager _threadManager;
+        private readonly IWeatherProvider _weatherProvider;
+        private readonly IThreadManager _threadManager;
+        private readonly IStrikePositionProvider _strikePositionProvider;
+
 
         private readonly float _lightningRangeRadius = -1f;
         private static int _currentLighningCount = 0;
         private static NetId LWCNetId = NetId.INVALID;
 
-        public LightningSpawner(IWeatherProvider weatherProvider, IThreadManager threadManager)
+        public LightningSpawner(IWeatherProvider weatherProvider, IThreadManager threadManager, IStrikePositionProvider strikePositionProvider)
         {
             _weatherProvider = weatherProvider;
             _threadManager = threadManager;
+            _strikePositionProvider = strikePositionProvider;
         }
 
         public bool Strike(Vector3 hitPosition, bool dealDamage = false)
@@ -44,44 +46,8 @@ namespace LightningStrikes.Services
             //    return SendLightningStrike(hitPosition, player, dealDamage);
         }
 
-        public void StrikeRing(Vector3 center, int count, float radius, int minDelay = 50, int maxDelay = 50, bool dealDamage = false, bool random = false, bool circle = false)
+        public void StrikeRing(Vector3[] strikePostions, int minDelay = 50, int maxDelay = 50, bool dealDamage = false)
         {
-            Vector3[] strikePostions = new Vector3[count];
-            float angle = PI_2 / count;
-
-            for (int i = 0; i < count; i++)
-            {
-                float cosX;
-                float sinY;
-
-                if (circle)
-                {
-                    strikePostions[i] = center + Random.onUnitSphere * radius;
-                    strikePostions[i].y = LevelGround.getHeight(strikePostions[i]);
-                    continue;
-                }
-
-                if (random)
-                {
-                    var rn = Random.value;
-                    cosX = Mathf.Cos(PI_2 * rn);
-                    sinY = Mathf.Sin(PI_2 * rn);
-                }
-                else
-                {
-                    cosX = Mathf.Cos(angle * i);
-                    sinY = Mathf.Sin(angle * i);
-                }
-
-                strikePostions[i] = new Vector3(
-                    center.x + radius * cosX,
-                    center.y,
-                    center.z + radius * sinY
-                );
-
-                strikePostions[i].y = LevelGround.getHeight(strikePostions[i]);
-            }
-
             Task.Run(async () =>
             {
                 foreach (var strikePostion in strikePostions)

@@ -14,7 +14,7 @@ namespace LightningStrikes.RocketMod.Commands
 
         public string Help => "Sends multiple lightning strikes around a ring.";
 
-        public string Syntax => "[<player>] <amount> <radius> [<minDelay> <maxDelay>] [-d] [-r | -c]";
+        public string Syntax => "[<player>] <amount> <radius> [<minDelay> <maxDelay>] [-d] [-r | -c] [-g]";
 
         public List<string> Aliases => new List<string>() { "striker" };
 
@@ -74,6 +74,7 @@ namespace LightningStrikes.RocketMod.Commands
             bool dealDamage = false;
             bool random = false;
             bool circle = false;
+            bool hitGround = false;
             for (int j = i; j < command.Length; j++)
             {
                 // Parse [-damage | -d]
@@ -96,6 +97,13 @@ namespace LightningStrikes.RocketMod.Commands
                     circle = true;
                     i++;
                 }
+
+                // Parse [-ground | -g]
+                if (command[j] == "-ground" || command[j] == "-g")
+                {
+                    hitGround = true;
+                    i++;
+                }
             }
 
             if (command.Length > i)
@@ -108,16 +116,14 @@ namespace LightningStrikes.RocketMod.Commands
             if (target == null)
                 target = uPlayer.Player;
 
+            Vector3[] strikePositions = LightningStrikes.Instance.StrikePositionProvider.GetPositions(target.transform.position, amount, radius, random, circle, hitGround);
+
             // Strike
             LightningStrikes.Instance.LightningSpawner.StrikeRing(
-                target.transform.position,
-                amount,
-                radius,
+                strikePositions,
                 minDelay != -1 ? minDelay : 50,
                 maxDelay != -1 ? maxDelay : 50,
-                dealDamage,
-                random,
-                circle
+                dealDamage
             );
         }
     }

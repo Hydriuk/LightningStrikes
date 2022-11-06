@@ -1,5 +1,6 @@
 ﻿using Cysharp.Threading.Tasks;
 using LightningStrikes.API;
+using LightningStrikes.Services;
 using OpenMod.Core.Commands;
 using OpenMod.Unturned.Commands;
 using OpenMod.Unturned.Users;
@@ -16,10 +17,12 @@ namespace LightningStrikes.OpenMod.Commands
     public class StrikeCommand : UnturnedCommand
     {
         private readonly ILightningSpawner _lightningSpawner;
+        private readonly IStrikePositionProvider _strikePositionProvider;
 
-        public StrikeCommand(IServiceProvider serviceProvider, ILightningSpawner lightningSpawner) : base(serviceProvider)
+        public StrikeCommand(IServiceProvider serviceProvider, ILightningSpawner lightningSpawner, IStrikePositionProvider strikePositionProvider) : base(serviceProvider)
         {
             _lightningSpawner = lightningSpawner;
+            _strikePositionProvider = strikePositionProvider;
         }
 
         protected override UniTask OnExecuteAsync()
@@ -54,16 +57,7 @@ namespace LightningStrikes.OpenMod.Commands
             Vector3 hitPosition;
             if (target == null)
             {
-                // Raycast target player's look
-                Physics.Raycast(
-                    user.Player.Player.look.aim.position,
-                    user.Player.Player.look.aim.forward,
-                    out RaycastHit hit,
-                    1000f,
-                    RayMasks.BLOCK_COLLISION - RayMasks.SKY,
-                    QueryTriggerInteraction.UseGlobal
-                );
-                hitPosition = hit.point;
+                hitPosition = _strikePositionProvider.GetLookedPosition(user.Player.Player);
             }
             else
             {

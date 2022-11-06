@@ -10,10 +10,12 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)API\ILightningSpawner.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\IStrikePositionProvider.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\IThreadManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\IWeatherProvider.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\EStrikeType.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\LightningSpawner.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Services\StrikePositionProvider.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\WeatherProvider.cs" />
   </ItemGroup>
 </Project>

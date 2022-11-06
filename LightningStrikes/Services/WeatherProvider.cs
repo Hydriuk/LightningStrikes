@@ -12,6 +12,10 @@ namespace LightningStrikes.Services
 #if OPENMOD
     [PluginServiceImplementation(Lifetime = ServiceLifetime.Singleton)]
 #endif
+    /// <summary>
+    /// The <see cref="LightningWeatherComponent"/> is the client side object that creates the lightning. The client needs an active instance of this object to generate a lightning.
+    /// <see cref="WeatherProvider"/> changes the current weather to one that has a <see cref="LightningWeatherComponent"/> instanciated with it.
+    /// </summary>
     public class WeatherProvider : IWeatherProvider
     {
         private readonly static FieldInfo _weatherForecastTimerGetter = typeof(LightingManager).GetField("scheduledWeatherForecastTimer", BindingFlags.NonPublic | BindingFlags.Static);

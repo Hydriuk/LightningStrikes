@@ -56,16 +56,7 @@ namespace LightningStrikes.RocketMod.Commands
             Vector3 hitPosition;
             if (target == null)
             {
-                // Raycast target player's look
-                Physics.Raycast(
-                    uPlayer.Player.look.aim.position,
-                    uPlayer.Player.look.aim.forward,
-                    out RaycastHit hit,
-                    1000f,
-                    RayMasks.BLOCK_COLLISION - RayMasks.SKY,
-                    QueryTriggerInteraction.UseGlobal
-                );
-                hitPosition = hit.point;
+                hitPosition = LightningStrikes.Instance.StrikePositionProvider.GetLookedPosition(uPlayer.Player);
             }
             else
             {

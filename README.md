@@ -13,7 +13,7 @@ This plugin allows admins to send lightning strikes, the ones from the game itse
 
 `strikering`:
 - **Alias**: `striker`
-- **Syntax**: `[<player>] <amount> <radius> [<minDelay> <maxDelay>] [-damage | -d] [-random | -r | -circle | -c]`
+- **Syntax**: `[<player>] <amount> <radius> [<minDelay> <maxDelay>] [-damage | -d] [-random | -r | -circle | -c] [-ground | -g]`
 - **Description**: Spawn multiple lightning strikes around a ring.
 - **Parameters**:
   - `[<player>]` (*Player name*): **Optional**. Name of the player on which to execute the command.
@@ -23,16 +23,15 @@ This plugin allows admins to send lightning strikes, the ones from the game itse
   - `[-damage | -d]` (*Flag*): **Optional**. If you add this flag in the command, the lightning strike will deal damage.
   - `[-random | -r ]` (*Flag*): **Optional**. If you set this flag, the lightning strikes will have random positions.
   - `[-circle | -c]` (*Flag*): **Optional**. If you set this flag, the lightning strikes will be randomly spawned inside the given radius instead of at its bounds.
-
-Can destroy structures with amzing lightinig effect
-can kill players
+  - `[-ground | -g]` (*Flag*): **Optional**. if you set this flag, the lightning strikes will be spawned at ground level instead of at the highest structure point.
 
 ## Notes
 
 <font color="ff1021">**Warning**</font>
 
-> If you send too many lightning strikes at once, players will kicked.
-> This can happen at 4000+ lightning strikes with a millisecond delay or with 1000+ lightning strikes with no delay for example
+> If you send too many lightning strikes at once, players will kicked.  
+> This can happen at 4000+ lightning strikes with a millisecond delay or with 1000+ lightning strikes with no delay for example.  
+> These values depend on your server, it could happen at different values.
 
 If you send enough lightning strikes with the `-damage` flag, you can kill players and destroy structures, barricades and resources.
 
