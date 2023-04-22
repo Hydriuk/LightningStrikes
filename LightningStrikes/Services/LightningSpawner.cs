@@ -24,18 +24,16 @@ namespace LightningStrikes.Services
 
         private readonly IWeatherProvider _weatherProvider;
         private readonly IThreadManager _threadManager;
-        private readonly IStrikePositionProvider _strikePositionProvider;
 
 
         private readonly float _lightningRangeRadius = -1f;
         private static int _currentLighningCount = 0;
         private static NetId LWCNetId = NetId.INVALID;
 
-        public LightningSpawner(IWeatherProvider weatherProvider, IThreadManager threadManager, IStrikePositionProvider strikePositionProvider)
+        public LightningSpawner(IWeatherProvider weatherProvider, IThreadManager threadManager)
         {
             _weatherProvider = weatherProvider;
             _threadManager = threadManager;
-            _strikePositionProvider = strikePositionProvider;
         }
 
         public bool Strike(Vector3 hitPosition, bool dealDamage = false)

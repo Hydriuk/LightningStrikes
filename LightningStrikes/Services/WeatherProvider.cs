@@ -19,20 +19,15 @@ namespace LightningStrikes.Services
     public class WeatherProvider : IWeatherProvider
     {
         private readonly static FieldInfo _weatherForecastTimerGetter = typeof(LightingManager).GetField("scheduledWeatherForecastTimer", BindingFlags.NonPublic | BindingFlags.Static);
-        private readonly static FieldInfo _weatherActiveTimerGetter = typeof(LightingManager).GetField("scheduledWeatherActiveTimer", BindingFlags.NonPublic | BindingFlags.Static);
-        private readonly static FieldInfo _scheduledWeatherRefGetter = typeof(LightingManager).GetField("scheduledWeatherRef", BindingFlags.NonPublic | BindingFlags.Static);
         private readonly static FieldInfo _activeCustomWeatherGetter = typeof(LevelLighting).GetField("activeCustomWeather", BindingFlags.NonPublic | BindingFlags.Static);
 
         private WeatherAssetBase _currentWeather;
-        private WeatherAssetBase _scheduledWeather;
-        private float _scheduledWeatherDuration;
         private float _weatherTimeLeft;
         private bool _rescheduleWeather = false;
 
         public WeatherProvider()
         {
             _currentWeather = LevelLighting.GetActiveWeatherAsset();
-            _scheduledWeather = ((AssetReference<WeatherAssetBase>)_scheduledWeatherRefGetter.GetValue(null)).get();
         }
 
         /// <summary>
@@ -43,25 +38,21 @@ namespace LightningStrikes.Services
         {
             object weather = _activeCustomWeatherGetter.GetValue(null);
 
-            NetId lwcNetId;
-            if (weather != null)
-            {
-                lwcNetId = GetLighningNetId(weather);
+            NetId lwcNetId = GetLighningNetId(weather);
 
-                if (lwcNetId == NetId.INVALID)
+            if (lwcNetId == NetId.INVALID)
+            {
+                // Save weather state only if not already saved
+                if (!_rescheduleWeather)
                 {
-                    SaveWeatherState(weather);
-
-                    weather = SetCustomLightningWeather();
-
-                    lwcNetId = GetLighningNetId(weather);
+                    SaveWeatherState();
                 }
-            }
-            else
-            {
+
                 weather = SetCustomLightningWeather();
 
                 lwcNetId = GetLighningNetId(weather);
+
+                _rescheduleWeather = true;
             }
 
             return lwcNetId;
@@ -72,34 +63,31 @@ namespace LightningStrikes.Services
         /// </summary>
         public void RestoreWeather()
         {
-            if (_rescheduleWeather)
+            if(_rescheduleWeather)
             {
-                LightingManager.ActivatePerpetualWeather(_currentWeather);
+                if(_currentWeather == null)
+                {
+                    LightingManager.DisableWeather();
+                }
+                else
+                {
+                    LightingManager.ForecastWeatherImmediately(_currentWeather);
+                }
 
-                LightingManager.SetScheduledWeather(_scheduledWeather, _weatherTimeLeft, _scheduledWeatherDuration);
-                _rescheduleWeather = false;
-            }
-            else
-            {
                 LightingManager.ResetScheduledWeather();
+
+                _weatherForecastTimerGetter.SetValue(null, _weatherTimeLeft);
+                _rescheduleWeather = false;
             }
         }
 
         /// <summary>
         /// Saves the current weather state
         /// </summary>
-        /// <param name="weather"> The current active <see cref="LevelLighting.CustomWeatherInstance"/> </param>
-        private void SaveWeatherState(object weather)
+        private void SaveWeatherState()
         {
-            _rescheduleWeather = true;
-
             _currentWeather = LevelLighting.GetActiveWeatherAsset();
-
             _weatherTimeLeft = (float)_weatherForecastTimerGetter.GetValue(null);
-
-            _scheduledWeather = ((AssetReference<WeatherAssetBase>)_scheduledWeatherRefGetter.GetValue(null)).get();
-
-            _scheduledWeatherDuration = (float)_weatherActiveTimerGetter.GetValue(null);
         }
 
         /// <summary>
@@ -111,7 +99,7 @@ namespace LightningStrikes.Services
             // Heavy rain weather
             AssetReference<WeatherAssetBase>.TryParse("6c850687bdb947a689fa8de8a8d99afb", out AssetReference<WeatherAssetBase> assetRef);
 
-            WeatherAssetBase weatherAsset = assetRef.get();
+            WeatherAssetBase weatherAsset = assetRef.Find();
             LightingManager.ActivatePerpetualWeather(weatherAsset);
 
             return _activeCustomWeatherGetter.GetValue(null);
@@ -124,6 +112,9 @@ namespace LightningStrikes.Services
         /// <returns> NetId of the active Lightning Weather Component </returns>
         private NetId GetLighningNetId(object weather)
         {
+            if (weather == null)
+                return NetId.INVALID;
+
             GameObject weatherGameObject = (GameObject)weather
                 .GetType()
                 .GetField("gameObject")
