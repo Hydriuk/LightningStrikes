@@ -7,6 +7,7 @@ using SDG.NetTransport;
 using SDG.Unturned;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -18,7 +19,7 @@ namespace LightningStrikes.Services
 #endif
     public class LightningSpawner : ILightningSpawner
     {
-        private const int PRE_STRIKE_DELAY = 50;
+        private const int PRE_STRIKE_DELAY = 30;
         private const int POST_STRIKE_DELAY = 2000;
 
         private readonly static ClientInstanceMethod<Vector3> _sendLightningStrike = ClientInstanceMethod<Vector3>.Get(typeof(LightningWeatherComponent), "ReceiveLightningStrike");
@@ -26,20 +27,19 @@ namespace LightningStrikes.Services
         private readonly IWeatherProvider _weatherProvider;
         private readonly IThreadManager _threadManager;
 
-
-        private readonly float _lightningRangeRadius = -1f;
-        private static int _currentLighningCount = 0;
-        private static NetId LWCNetId = NetId.INVALID;
+        private NetId LWCNetId = NetId.INVALID;
+        private Timer _timer;
 
         public LightningSpawner(IWeatherProvider weatherProvider, IThreadManager threadManager)
         {
             _weatherProvider = weatherProvider;
             _threadManager = threadManager;
+            _timer = new Timer(ResetWeather);
         }
 
-        public bool Strike(Vector3 hitPosition, bool dealDamage = false)
+        public void Strike(Vector3 hitPosition, bool dealDamage = false)
         {
-            return SendLightningStrike(hitPosition, dealDamage);
+            SendLightningStrike(hitPosition, dealDamage);
             //if (player == null)
             //else
             //    return SendLightningStrike(hitPosition, player, dealDamage);
@@ -57,23 +57,18 @@ namespace LightningStrikes.Services
             });
         }
 
-        private bool SendLightningStrike(Vector3 hitPosition, bool dealDamage = false)
+        private void SendLightningStrike(Vector3 hitPosition, bool dealDamage = false)
         {
             if (LWCNetId == NetId.INVALID)
                 LWCNetId = _weatherProvider.SetLightningWeather();
 
             if (LWCNetId == NetId.INVALID)
-                return false;
+                return;
 
-            if (_lightningRangeRadius > 0f)
-                _ = SendLightningStrike(hitPosition, Provider.GatherClientConnectionsWithinSphere(hitPosition, _lightningRangeRadius), LWCNetId);
-            else
-                _ = SendLightningStrike(hitPosition, Provider.GatherClientConnections(), LWCNetId);
+            _ = SendLightningStrike(hitPosition, LWCNetId);
 
             if (dealDamage)
                 _threadManager.Execute(DealDamage, 1, hitPosition);
-
-            return true;
         }
 
         private void DealDamage(Vector3 hitPosition)
@@ -94,23 +89,19 @@ namespace LightningStrikes.Services
             }, out List<EPlayerKill> _);
         }
 
-        private async Task SendLightningStrike(Vector3 hitPosition, IEnumerable<ITransportConnection> players, NetId lwcNetId)
+        private async Task SendLightningStrike(Vector3 hitPosition,NetId lwcNetId)
         {
-            lock (this)
-                _currentLighningCount++;
-
             await Task.Delay(PRE_STRIKE_DELAY);
-            _sendLightningStrike.Invoke(lwcNetId, ENetReliability.Reliable, players.ToList(), hitPosition);
-            await Task.Delay(POST_STRIKE_DELAY);
+            _sendLightningStrike.Invoke(lwcNetId, ENetReliability.Reliable, Provider.GatherClientConnections(), hitPosition);
 
-            lock (this)
-                _currentLighningCount--;
+            _timer.Change(POST_STRIKE_DELAY, Timeout.Infinite);
+        }
 
-            if (_currentLighningCount == 0)
-            {
-                _weatherProvider.RestoreWeather();
-                LWCNetId = NetId.INVALID;
-            }
+        private void ResetWeather(object state)
+        {
+            System.Console.WriteLine("Try restoring");
+            _weatherProvider.RestoreWeather();
+            LWCNetId = NetId.INVALID;
         }
     }
 }
