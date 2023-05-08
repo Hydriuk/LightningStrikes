@@ -27,5 +27,10 @@ namespace LightningStrikes.RocketMod
             StrikePositionProvider = new StrikePositionProvider();
             LightningSpawner = new LightningSpawner(WeatherProvider, ThreadManager);
         }
+
+        protected override void Unload()
+        {
+            LightningSpawner.Dispose();
+        }
     }
 }

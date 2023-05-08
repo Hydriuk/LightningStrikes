@@ -37,6 +37,11 @@ namespace LightningStrikes.Services
             _timer = new Timer(ResetWeather);
         }
 
+        public void Dispose()
+        {
+            _timer.Dispose();
+        }
+
         public void Strike(Vector3 hitPosition, bool dealDamage = false)
         {
             SendLightningStrike(hitPosition, dealDamage);
