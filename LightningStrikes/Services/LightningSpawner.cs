@@ -6,6 +6,7 @@ using OpenMod.API.Ioc;
 using SDG.NetTransport;
 using SDG.Unturned;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -65,9 +66,9 @@ namespace LightningStrikes.Services
                 return false;
 
             if (_lightningRangeRadius > 0f)
-                _ = SendLightningStrike(hitPosition, Provider.EnumerateClients_WithinSphere(hitPosition, _lightningRangeRadius), LWCNetId);
+                _ = SendLightningStrike(hitPosition, Provider.GatherClientConnectionsWithinSphere(hitPosition, _lightningRangeRadius), LWCNetId);
             else
-                _ = SendLightningStrike(hitPosition, Provider.EnumerateClients(), LWCNetId);
+                _ = SendLightningStrike(hitPosition, Provider.GatherClientConnections(), LWCNetId);
 
             if (dealDamage)
                 _threadManager.Execute(DealDamage, 1, hitPosition);
@@ -99,7 +100,7 @@ namespace LightningStrikes.Services
                 _currentLighningCount++;
 
             await Task.Delay(PRE_STRIKE_DELAY);
-            _sendLightningStrike.Invoke(lwcNetId, ENetReliability.Reliable, players, hitPosition);
+            _sendLightningStrike.Invoke(lwcNetId, ENetReliability.Reliable, players.ToList(), hitPosition);
             await Task.Delay(POST_STRIKE_DELAY);
 
             lock (this)
