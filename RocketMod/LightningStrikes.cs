@@ -22,15 +22,15 @@ namespace LightningStrikes.RocketMod
 
         protected override void Load()
         {
-            WeatherProvider = new WeatherProvider();
             ThreadManager = new ThreadManager();
+            WeatherProvider = new WeatherProvider(ThreadManager);
             StrikePositionProvider = new StrikePositionProvider();
             LightningSpawner = new LightningSpawner(WeatherProvider, ThreadManager);
         }
 
         protected override void Unload()
         {
-            LightningSpawner.Dispose();
+            WeatherProvider.Dispose();
         }
     }
 }

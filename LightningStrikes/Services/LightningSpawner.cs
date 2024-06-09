@@ -1,5 +1,4 @@
-﻿using Cysharp.Threading.Tasks;
-using LightningStrikes.API;
+﻿using LightningStrikes.API;
 #if OPENMOD
 using Microsoft.Extensions.DependencyInjection;
 using OpenMod.API.Ioc;
@@ -8,8 +7,6 @@ using SDG.NetTransport;
 using SDG.Unturned;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -21,48 +18,48 @@ namespace LightningStrikes.Services
 #endif
     public class LightningSpawner : ILightningSpawner
     {
+        private const int PRE_STRIKE_DELAY = 50;
+
         private readonly static ClientInstanceMethod<Vector3> _sendLightningStrike = ClientInstanceMethod<Vector3>.Get(typeof(LightningWeatherComponent), "ReceiveLightningStrike");
 
         private readonly IWeatherProvider _weatherProvider;
+        private readonly IThreadManager _threadManager;
 
-        public LightningSpawner(IWeatherProvider weatherProvider)
+        public LightningSpawner(IWeatherProvider weatherProvider, IThreadManager threadManager)
         {
+            _threadManager = threadManager;
             _weatherProvider = weatherProvider;
         }
 
         public void Strike(Vector3 hitPosition, bool dealDamage = false)
         {
-            Task.Run(async () =>
-            {
-                await UniTask.SwitchToMainThread();
-
-                await SendLightningStrike(hitPosition, dealDamage);
-            });
+            _threadManager.RunOnMainThread(() => SendLightningStrike(hitPosition, dealDamage));
         }
 
         public void StrikeRing(Vector3[] strikePostions, int minDelay = 50, int maxDelay = 50, bool dealDamage = false)
         {
-            Task.Run(async () =>
+            _threadManager.RunOnMainThread(async () =>
             {
-                await UniTask.SwitchToMainThread();
-
                 foreach (var strikePostion in strikePostions)
                 {
-                    await SendLightningStrike(strikePostion, dealDamage);
+                    SendLightningStrike(strikePostion, dealDamage);
 
                     await Task.Delay(Random.Range(minDelay, maxDelay));
                 }
             });
         }
 
-        private async Task SendLightningStrike(Vector3 hitPosition, bool dealDamage = false)
+        private void SendLightningStrike(Vector3 hitPosition, bool dealDamage = false)
         {
-            NetId lwcNetId = await _weatherProvider.SetLightningWeather();
+            _threadManager.RunOnMainThread(async () =>
+            {
+                NetId lwcNetId = _weatherProvider.SetLightningWeather();
 
-            if (lwcNetId == NetId.INVALID)
-                return;
+                if (lwcNetId == NetId.INVALID)
+                    return;
 
-            SendLightningStrike(hitPosition, lwcNetId, dealDamage);
+                await SendLightningStrike(hitPosition, lwcNetId, dealDamage);
+            });
         }
 
         private async Task DealDamage(Vector3 hitPosition)
@@ -85,12 +82,16 @@ namespace LightningStrikes.Services
             }, out List<EPlayerKill> _);
         }
 
-        private void SendLightningStrike(Vector3 hitPosition, NetId lwcNetId, bool dealDamage)
+        private async Task SendLightningStrike(Vector3 hitPosition, NetId lwcNetId, bool dealDamage)
         {
-            _sendLightningStrike.Invoke(lwcNetId, ENetReliability.Reliable, Provider.GatherClientConnections(), hitPosition);
+            _threadManager.RunOnMainThread(async () =>
+            {
+                await Task.Delay(PRE_STRIKE_DELAY);
+                _sendLightningStrike.Invoke(lwcNetId, ENetReliability.Reliable, Provider.GatherClientConnections(), hitPosition);
+            });
 
             if (dealDamage)
-                Task.Run(async () => await DealDamage(hitPosition));
+                await DealDamage(hitPosition);
         }
     }
 }

@@ -8,14 +8,9 @@ namespace LightningStrikes.RocketMod.Services
 {
     public class ThreadManager : MonoBehaviour, IThreadManager
     {
-        public void Execute<T>(Action<T> action, float delay, T arg)
+        public void RunOnMainThread(Action action)
         {
-            TaskDispatcher.RunAsync(async () =>
-            {
-                await Task.Delay((int)(delay * 1000));
-
-                action(arg);
-            });
+            TaskDispatcher.QueueOnMainThread(action);
         }
     }
 }

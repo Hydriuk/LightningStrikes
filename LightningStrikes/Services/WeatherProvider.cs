@@ -9,8 +9,6 @@ using System.Reflection;
 using UnityEngine;
 using System.Threading;
 using System.Threading.Tasks;
-using SDG.NetTransport;
-using Cysharp.Threading.Tasks;
 
 namespace LightningStrikes.Services
 {
@@ -23,7 +21,6 @@ namespace LightningStrikes.Services
     /// </summary>
     public class WeatherProvider : IWeatherProvider
     {
-        private const int PRE_STRIKE_DELAY = 50;
         private const int POST_STRIKE_DELAY = 2000;
 
         private readonly static FieldInfo _weatherForecastTimerGetter = typeof(LightingManager).GetField("scheduledWeatherForecastTimer", BindingFlags.NonPublic | BindingFlags.Static);
@@ -32,8 +29,12 @@ namespace LightningStrikes.Services
         private readonly Timer _timer;
         private readonly WeatherAssetBase _lightningAsset;
 
-        public WeatherProvider()
+        private readonly IThreadManager _threadManager;
+
+        public WeatherProvider(IThreadManager threadManager)
         {
+            _threadManager = threadManager;
+
             _timer = new Timer(RestoreWeather);
 
             AssetReference<WeatherAssetBase>.TryParse("68f4c2961e224acab4d3b70ebba55149", out AssetReference<WeatherAssetBase> lightningAssetRef);
@@ -44,33 +45,30 @@ namespace LightningStrikes.Services
         {
             _timer.Dispose();
 
-            _ = RestoreWeather();
+            RestoreWeather();
         }
 
         /// <summary>
         /// Sets a weather that has lightnings
         /// </summary>
         /// <returns> NetId of the active Lightning Weather Component </returns>
-        public async Task<NetId> SetLightningWeather()
+        public NetId SetLightningWeather()
         {
             var weather = SetCustomLightningWeather();
             var lwcNetId = GetLighningNetId(weather);
 
-            await Task.Delay(PRE_STRIKE_DELAY);
             _timer.Change(POST_STRIKE_DELAY, Timeout.Infinite);
 
             return lwcNetId;
         }
 
-        private void RestoreWeather(object state) => _ = RestoreWeather();
+        private void RestoreWeather(object state) => RestoreWeather();
         /// <summary>
         /// Restore the weather state if weather was changed for a lightning one
         /// </summary>
-        public async UniTask RestoreWeather()
+        public void RestoreWeather()
         {
-            await UniTask.SwitchToMainThread();
-
-            LightingManager.ResetScheduledWeather();
+            _threadManager.RunOnMainThread(LightingManager.ResetScheduledWeather);
         }
 
         /// <summary>

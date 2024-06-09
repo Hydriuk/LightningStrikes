@@ -13,7 +13,7 @@ namespace LightningStrikes.API
 #endif
     public interface IWeatherProvider : IDisposable
     {
-        Task<NetId> SetLightningWeather();
-        UniTask RestoreWeather();
+        NetId SetLightningWeather();
+        void RestoreWeather();
     }
 }

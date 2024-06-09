@@ -9,11 +9,11 @@ namespace LightningStrikes.OpenMod.Services
     [PluginServiceImplementation(Lifetime = ServiceLifetime.Singleton)]
     public class ThreadManager : IThreadManager
     {
-        public async void Execute<T>(Action<T> action, float delay, T arg)
+        public async void RunOnMainThread(Action action)
         {
-            await UniTask.Delay((int)(delay * 1000));
+            await UniTask.SwitchToMainThread();
 
-            action(arg);
+            action();
         }
     }
 }
