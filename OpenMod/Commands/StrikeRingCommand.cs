@@ -26,7 +26,7 @@ namespace LightningStrikes.OpenMod.Commands
             _strikePositionProvider = strikePositionProvider;
         }
 
-        protected override UniTask OnExecuteAsync()
+        protected async override UniTask OnExecuteAsync()
         {
             UnturnedUser user = (UnturnedUser)Context.Actor;
 
@@ -116,8 +116,6 @@ namespace LightningStrikes.OpenMod.Commands
                 maxDelay != -1 ? maxDelay : 50,
                 dealDamage
             );
-
-            return UniTask.CompletedTask;
         }
     }
 }

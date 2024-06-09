@@ -1,7 +1,9 @@
 ﻿using Rocket.API;
+using Rocket.Core.Utils;
 using Rocket.Unturned.Player;
 using SDG.Unturned;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace LightningStrikes.RocketMod.Commands
@@ -65,7 +67,12 @@ namespace LightningStrikes.RocketMod.Commands
             }
 
             if (hitPosition != Vector3.zero)
-                LightningStrikes.Instance.LightningSpawner.Strike(hitPosition, dealDamage: dealDamage);
+            {
+                TaskDispatcher.QueueOnMainThread(() =>
+                {
+                    LightningStrikes.Instance.LightningSpawner.Strike(hitPosition, dealDamage: dealDamage);
+                });
+            }
         }
     }
 }

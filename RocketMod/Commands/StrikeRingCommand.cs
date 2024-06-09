@@ -1,4 +1,5 @@
 ﻿using Rocket.API;
+using Rocket.Core.Utils;
 using Rocket.Unturned.Player;
 using SDG.Unturned;
 using System.Collections.Generic;
@@ -119,12 +120,15 @@ namespace LightningStrikes.RocketMod.Commands
             Vector3[] strikePositions = LightningStrikes.Instance.StrikePositionProvider.GetPositions(target.transform.position, amount, radius, random, circle, hitGround);
 
             // Strike
-            LightningStrikes.Instance.LightningSpawner.StrikeRing(
-                strikePositions,
-                minDelay != -1 ? minDelay : 50,
-                maxDelay != -1 ? maxDelay : 50,
-                dealDamage
-            );
+            TaskDispatcher.QueueOnMainThread(() =>
+            {
+                LightningStrikes.Instance.LightningSpawner.StrikeRing(
+                    strikePositions,
+                    minDelay != -1 ? minDelay : 50,
+                    maxDelay != -1 ? maxDelay : 50,
+                    dealDamage
+                );
+            });
         }
     }
 }

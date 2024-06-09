@@ -1,10 +1,12 @@
-﻿using LightningStrikes.API;
+﻿using Cysharp.Threading.Tasks;
+using LightningStrikes.API;
 #if OPENMOD
 using Microsoft.Extensions.DependencyInjection;
 using OpenMod.API.Ioc;
 #endif
 using SDG.NetTransport;
 using SDG.Unturned;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -19,65 +21,54 @@ namespace LightningStrikes.Services
 #endif
     public class LightningSpawner : ILightningSpawner
     {
-        private const int PRE_STRIKE_DELAY = 30;
-        private const int POST_STRIKE_DELAY = 2000;
-
         private readonly static ClientInstanceMethod<Vector3> _sendLightningStrike = ClientInstanceMethod<Vector3>.Get(typeof(LightningWeatherComponent), "ReceiveLightningStrike");
 
         private readonly IWeatherProvider _weatherProvider;
-        private readonly IThreadManager _threadManager;
 
-        private NetId LWCNetId = NetId.INVALID;
-        private Timer _timer;
-
-        public LightningSpawner(IWeatherProvider weatherProvider, IThreadManager threadManager)
+        public LightningSpawner(IWeatherProvider weatherProvider)
         {
             _weatherProvider = weatherProvider;
-            _threadManager = threadManager;
-            _timer = new Timer(ResetWeather);
-        }
-
-        public void Dispose()
-        {
-            _timer.Dispose();
         }
 
         public void Strike(Vector3 hitPosition, bool dealDamage = false)
         {
-            SendLightningStrike(hitPosition, dealDamage);
-            //if (player == null)
-            //else
-            //    return SendLightningStrike(hitPosition, player, dealDamage);
+            Task.Run(async () =>
+            {
+                await UniTask.SwitchToMainThread();
+
+                await SendLightningStrike(hitPosition, dealDamage);
+            });
         }
 
         public void StrikeRing(Vector3[] strikePostions, int minDelay = 50, int maxDelay = 50, bool dealDamage = false)
         {
             Task.Run(async () =>
             {
+                await UniTask.SwitchToMainThread();
+
                 foreach (var strikePostion in strikePostions)
                 {
-                    SendLightningStrike(strikePostion, dealDamage);
+                    await SendLightningStrike(strikePostion, dealDamage);
+
                     await Task.Delay(Random.Range(minDelay, maxDelay));
                 }
             });
         }
 
-        private void SendLightningStrike(Vector3 hitPosition, bool dealDamage = false)
+        private async Task SendLightningStrike(Vector3 hitPosition, bool dealDamage = false)
         {
-            if (LWCNetId == NetId.INVALID)
-                LWCNetId = _weatherProvider.SetLightningWeather();
+            NetId lwcNetId = await _weatherProvider.SetLightningWeather();
 
-            if (LWCNetId == NetId.INVALID)
+            if (lwcNetId == NetId.INVALID)
                 return;
 
-            _ = SendLightningStrike(hitPosition, LWCNetId);
-
-            if (dealDamage)
-                _threadManager.Execute(DealDamage, 1, hitPosition);
+            SendLightningStrike(hitPosition, lwcNetId, dealDamage);
         }
 
-        private void DealDamage(Vector3 hitPosition)
+        private async Task DealDamage(Vector3 hitPosition)
         {
+            await Task.Delay(1000);
+
             DamageTool.explode(new ExplosionParameters(hitPosition, 10f, EDeathCause.BURNING)
             {
                 damageOrigin = EDamageOrigin.Lightning,
@@ -94,19 +85,12 @@ namespace LightningStrikes.Services
             }, out List<EPlayerKill> _);
         }
 
-        private async Task SendLightningStrike(Vector3 hitPosition,NetId lwcNetId)
+        private void SendLightningStrike(Vector3 hitPosition, NetId lwcNetId, bool dealDamage)
         {
-            await Task.Delay(PRE_STRIKE_DELAY);
             _sendLightningStrike.Invoke(lwcNetId, ENetReliability.Reliable, Provider.GatherClientConnections(), hitPosition);
 
-            _timer.Change(POST_STRIKE_DELAY, Timeout.Infinite);
-        }
-
-        private void ResetWeather(object state)
-        {
-            System.Console.WriteLine("Try restoring");
-            _weatherProvider.RestoreWeather();
-            LWCNetId = NetId.INVALID;
+            if (dealDamage)
+                Task.Run(async () => await DealDamage(hitPosition));
         }
     }
 }

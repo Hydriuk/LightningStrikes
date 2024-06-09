@@ -25,7 +25,7 @@ namespace LightningStrikes.OpenMod.Commands
             _strikePositionProvider = strikePositionProvider;
         }
 
-        protected override UniTask OnExecuteAsync()
+        protected override async UniTask OnExecuteAsync()
         {
             UnturnedUser user = (UnturnedUser)Context.Actor;
 
@@ -66,9 +66,9 @@ namespace LightningStrikes.OpenMod.Commands
             }
 
             if (hitPosition != Vector3.zero)
+            {
                 _lightningSpawner.Strike(hitPosition, dealDamage: dealDamage);
-
-            return UniTask.CompletedTask;
+            }
         }
     }
 }
